@@ -112,7 +112,7 @@ for line in test_data:
 	#plot points
 	gmap.plot(lats, lons, 'green', edge_width=5)
 	#draw map
-	gmap.draw('test_set' + str(i))
+	gmap.draw('test_set' + str(i) + '.html')
 
 	#print 5 neighbours
 	for j in range(0, 5):
@@ -138,6 +138,6 @@ for line in test_data:
 		#plot points for neighbours
 		gmap.plot(lats, lons, 'blue', edge_width=5)
 		#draw map for neighbours
-		gmap.draw('test_set' + str(i) + '_neighbour' + str(j) + 'jpid' + str(jp_id))
+		gmap.draw('test_set' + str(i) + '_neighbour' + str(j) + 'jpid' + str(jp_id) + '.html')
 
 	i+=1
