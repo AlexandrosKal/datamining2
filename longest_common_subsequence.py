@@ -1,4 +1,5 @@
 from gmplot import gmplot
+import os
 from operator import itemgetter
 import pandas as pd
 from ast import literal_eval
@@ -25,12 +26,40 @@ def haversine_distance(x, y):
 
     return d
 
+def lcs(X, Y):
+	#find the length of the strings
+    m = len(X)
+    n = len(Y)
+ 
+    #declaring the array for storing the dp values
+    L = [[None]*(n+1) for i in xrange(m+1)]
+    matching_points = []
+ 
+    """Following steps build L[m+1][n+1] in bottom up fashion
+    Note: L[i][j] contains length of LCS of X[0..i-1]
+    and Y[0..j-1]"""
+    for i in range(m+1):
+        for j in range(n+1):
+            if i == 0 or j == 0 :
+                L[i][j] = 0
+			#they match if haversine distance is <=200m
+            elif haversine_distance(X[i-1], Y[j-1]) <= 0.2:
+                L[i][j] = L[i-1][j-1]+1
+                matching_points.append(X[i-1])
+            else:
+                L[i][j] = max(L[i-1][j] , L[i][j-1])
+ 
+    #L[m][n] contains the length of LCS of X[0..n-1] & Y[0..m-1]
+    #return L[m][n]
+    return matching_points
+
+###################
 #read trainSet data
 trainSet = pd.read_csv('train_set.csv', converters={"Trajectory": literal_eval}, index_col = 'tripId')
-trainSet = trainSet[:100]
+#trainSet = trainSet[:500]
 
 #read testSet data
-testSet = pd.read_csv('test_set_a1.csv', sep='\t', converters={"Trajectory": literal_eval})
+testSet = pd.read_csv('test_set_a2.csv', sep='\t', converters={"Trajectory": literal_eval})
 
 #copy trajectory's lat and lon to our new list of lists 'train_data'
 train_data = []
@@ -44,60 +73,47 @@ for line in trainSet['Trajectory']:
 #same procedure for test_data
 test_data = []
 for line in testSet['Trajectory']:
-	#print line
 	temp = []
 	for arr in line:
-		#print arr
 		temp.append(arr[1:])
 
 	test_data.append(temp)
 
-#print test_data
 #start clock
 print('--- starting calculation ---')
 start_time = time.time()
 
 #compute neighbours
-dtw_dist = [ [], [], [], [], [] ]
+lcs_match = [ [], [], [], [], [] ]
 j=0
 for line1 in test_data:
-	line1 = np.array(line1)
 	i=0
 	for line2 in train_data:
-		line2 = np.array(line2)
-		dist, cost, acc, path = dtw(line1, line2, dist=haversine_distance)
-		dtw_dist[j].append( (dist, trainSet['journeyPatternId'].iloc[i]) )
+		points_matched = lcs(line1, line2)
+		lcs_match[j].append( (len(points_matched), points_matched, trainSet['journeyPatternId'].iloc[i]) )
 		i+=1
-
 	j+=1
-	
-#sort arrays
-#i=0
-#for arr in dtw_dist:
-#	dtw_dist[i] = sorted(arr, key=itemgetter(0))
-#	i+=1
 
-#find 5 nearest neighbours
+#find 5 max neighbours
 neighbours = [ [], [], [], [], [] ]
 j=0
-for arr in dtw_dist:
+for arr in lcs_match:
 	for i in range(0,5):
-		min_neighbour = min(arr, key=itemgetter(0))
-		neighbours[j].append(min_neighbour)
-		arr.remove(min_neighbour)
+		max_neighbour = max(arr, key=itemgetter(0))
+		neighbours[j].append(max_neighbour)
+		arr.remove(max_neighbour)
 
 	j+=1
 
 #end clock
 end_time = time.time()
-print('--- %s seconds elapsed ---'  % ( end_time - start_time) )
+print('--- %s seconds elapsed ---' % ( end_time - start_time ) )
 
-print neighbours[0]
-print neighbours[1]
-print neighbours[2]
-print neighbours[3]
-print neighbours[4]
-print('--- printing maps ---')
+#start printing maps
+directory = 'A2_maps'
+if not os.path.exists(directory):
+	os.makedirs(directory)
+
 i=0
 for line in test_data:
 	#print map from test_data
@@ -112,12 +128,11 @@ for line in test_data:
 	#plot points
 	gmap.plot(lats, lons, 'green', edge_width=5)
 	#draw map
-	gmap.draw('test_set' + str(i) + '.html')
+	gmap.draw('./' + directory + '/test_set' + str(i) + '.html')
 
 	#print 5 neighbours
 	for j in range(0, 5):
-#		jp_id = dtw_dist[i][j][1]
-		jp_id = neighbours[i][j][1]
+		jp_id = neighbours[i][j][2]
 
 		#find the neighbour in train set so we can draw
 		index = 0
@@ -133,11 +148,20 @@ for line in test_data:
 			lons.append(float(lon))
 			lats.append(float(lat))
 
+		mlats = []
+		mlons = []
+		for mlon, mlat in neighbours[i][j][1]:
+			mlons.append(float(mlon))
+			mlats.append(float(mlat))
+
 		#place map for neighbours
 		gmap = gmplot.GoogleMapPlotter(lats[0], lons[0], 13)
 		#plot points for neighbours
 		gmap.plot(lats, lons, 'blue', edge_width=5)
+		#plot points for matching points
+		gmap.plot(mlats, mlons, 'red', edge_width=5)
+		
 		#draw map for neighbours
-		gmap.draw('test_set' + str(i) + '_neighbour' + str(j) + 'jpid' + str(jp_id) + '.html')
+		gmap.draw('./' + directory + '/test_set' + str(i) + '_neighbour' + str(j) + 'jpid' + str(jp_id) + '.html')
 
 	i+=1
