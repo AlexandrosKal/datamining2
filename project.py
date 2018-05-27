@@ -339,9 +339,12 @@ def classification(trainSet, testSet):
     trainSet = trainSet
     testSet = testSet
 
+    start_time = time.time()
     neighbours = find_dtw(trainSet, testSet)
 
     classified = classify(neighbours)
+    end_time = time.time()
+    print('--- Total seconds elapsed(DTW+Voting): %s ---'  % ( end_time - start_time) )
 
     #write csv
     id = 0
@@ -363,14 +366,20 @@ def cross_validation(trainSet):
 
     kf = KFold(n_splits=10)
     acc = 0
+    f = 0
+    start_time = time.time()
     for train_index, test_index in kf.split(train_data):
+        f += 1
+        print "Fold: " + str(f)
         nearest = find_dtw(train_data.loc[indexes[train_index], :],
         train_data.loc[indexes[test_index], :])
         classified = classify(nearest)
         acc += accuracy_score(train_data['journeyPatternId'][indexes[test_index]], classified)
 
+    end_time = time.time()
     acc /= 10
     print "Accuracy = " + str(acc)
+    print('--- Total seconds elapsed(CV): %s ---'  % ( end_time - start_time) )
 
 print("Loading data...")
 #read trainSet data
@@ -386,15 +395,12 @@ for arg in sys.argv[1:]:
     if arg == "visualise":
         visualise(trainSet)
     elif arg == "a1":
-        trainSet = trainSet[:25]
-        a1(trainSet, testSet1)
+        a1(trainSet[:50], testSet1)
     elif arg == "a2":
-        trainSet = trainSet[:25]
-        a2(trainSet, testSet2)
+        a2(trainSet[:50], testSet2)
     elif arg == "classification":
-        trainSet = trainSet[:25]
-        classification(trainSet, testSet2)
+        classification(trainSet[:50], testSet2)
     elif arg == "cross_validation":
-        cross_validation(trainSet)
+        cross_validation(trainSet[:50])
     else:
         print "Unkonwn arguement: " + str(arg)
