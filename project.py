@@ -156,7 +156,7 @@ def visualise(trainSet):
 
 def a1(trainSet, testSet):
     print "-----A1-----"
-    trainSet = trainSet[:500]
+    trainSet = trainSet
     testSet = testSet
 
     train_data = []
@@ -229,7 +229,7 @@ def a1(trainSet, testSet):
 
 def a2(trainSet, testSet):
     print "-----A2-----"
-    trainSet =  trainSet[:500]
+    trainSet =  trainSet
     testSet = testSet
 
     #copy trajectory's lat and lon to our new list of lists 'train_data'
