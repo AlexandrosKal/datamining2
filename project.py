@@ -41,7 +41,7 @@ def classify(neighbours):
     return classified
 
 def lcs(X, Y):
-	#find the length of the strings
+    #find the length of the strings
     m = len(X)
     n = len(Y)
 
@@ -80,33 +80,32 @@ def find_dtw(trainSet, testSet):
     #same procedure for test_data
     test_data = []
     for line in testSet['Trajectory']:
-        #print line
         temp = []
         for arr in line:
-            #print arr
             temp.append(arr[1:])
 
         test_data.append(temp)
 
-    #print test_data
     #start clock
     print('--- starting calculation ---')
-    start_time = time.time()
+    #start_time = time.time()
 
     #compute neighbours
     dtw_dist = []
+    time_elapsed = []
     j=0
     for line1 in test_data:
         line1 = np.array(line1)
         i=0
+        time_elapsed.append(time.time())
         dtw_dist.append([])
         for line2 in train_data:
             line2 = np.array(line2)
             dist, cost, acc, path = dtw(line1, line2, dist=haversine_distance)
-            poutsa =  trainSet['journeyPatternId'].iloc[i]
             dtw_dist[j].append( (dist, trainSet['journeyPatternId'].iloc[i]) )
             i+=1
 
+        time_elapsed[j] = time.time() - time_elapsed[j]
         j+=1
 
     #find 5 nearest neighbours
@@ -114,16 +113,20 @@ def find_dtw(trainSet, testSet):
     j=0
     for arr in dtw_dist:
         neighbours.append([])
+        temp_time = time.time()
         for i in range(0,5):
             min_neighbour = min(arr, key=itemgetter(0))
             neighbours[j].append(min_neighbour)
             arr.remove(min_neighbour)
 
+        time_elapsed[j] += time.time() - temp_time
+
+        print('Test Trip ' + str(j+1) + '(--' + str(time_elapsed[j]) + ' seconds)')
+        for i in range(0,5):
+            print ('\tNeighbour ' + str(i+1) + ' JP_ID: ' + str(neighbours[j][i][1]) + ' DTW: ' + str(neighbours[j][i][0]))
+
         j+=1
 
-    #end clock
-    end_time = time.time()
-    print('--- %s seconds elapsed ---'  % ( end_time - start_time) )
     return neighbours
 
 def visualise(trainSet):
@@ -133,8 +136,6 @@ def visualise(trainSet):
     #take first 5 with different journeypatternid
     trainSet = trainSet.drop_duplicates('journeyPatternId')
     trainSet = trainSet[:5]
-
-
 
     i = 1
     for trajectory in trainSet['Trajectory']:
@@ -155,7 +156,7 @@ def visualise(trainSet):
 
 def a1(trainSet, testSet):
     print "-----A1-----"
-    trainSet =  trainSet
+    trainSet = trainSet[:500]
     testSet = testSet
 
     train_data = []
@@ -169,10 +170,8 @@ def a1(trainSet, testSet):
     #same procedure for test_data
     test_data = []
     for line in testSet['Trajectory']:
-        #print line
         temp = []
         for arr in line:
-            #print arr
             temp.append(arr[1:])
 
         test_data.append(temp)
@@ -180,6 +179,11 @@ def a1(trainSet, testSet):
     neighbours = find_dtw(trainSet, testSet)
 
     print('--- printing maps ---')
+
+    directory = 'A1_maps'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     i=0
     for line in test_data:
         #print map from test_data
@@ -194,11 +198,10 @@ def a1(trainSet, testSet):
         #plot points
         gmap.plot(lats, lons, 'green', edge_width=5)
         #draw map
-        gmap.draw('test_set' + str(i) + '.html')
+        gmap.draw('./' + directory + '/test_set' + str(i) + '.html')
 
         #print 5 neighbours
         for j in range(0, 5):
-    #		jp_id = dtw_dist[i][j][1]
             jp_id = neighbours[i][j][1]
 
             #find the neighbour in train set so we can draw
@@ -220,13 +223,13 @@ def a1(trainSet, testSet):
             #plot points for neighbours
             gmap.plot(lats, lons, 'blue', edge_width=5)
             #draw map for neighbours
-            gmap.draw('test_set' + str(i) + '_neighbour' + str(j) + 'jpid' + str(jp_id) + '.html')
+            gmap.draw('./' + directory + '/test_set' + str(i) + '_neighbour' + str(j) + 'jpid' + str(jp_id) + '.html')
 
         i+=1
 
 def a2(trainSet, testSet):
     print "-----A2-----"
-    trainSet =  trainSet
+    trainSet =  trainSet[:500]
     testSet = testSet
 
     #copy trajectory's lat and lon to our new list of lists 'train_data'
@@ -247,35 +250,38 @@ def a2(trainSet, testSet):
 
         test_data.append(temp)
 
-    #start clock
-    print('--- starting calculation ---')
-    start_time = time.time()
-
     #compute neighbours
-    lcs_match = [ [], [], [], [], [] ]
+    lcs_match = []
     j=0
+    time_elapsed = []
     for line1 in test_data:
         i=0
+        lcs_match.append([])
+        time_elapsed.append(time.time())
         for line2 in train_data:
             points_matched = lcs(line1, line2)
             lcs_match[j].append( (len(points_matched), points_matched, trainSet['journeyPatternId'].iloc[i]) )
             i+=1
+
+        time_elapsed[j] = time.time() - time_elapsed[j]
         j+=1
 
     #find 5 max neighbours
-    neighbours = [ [], [], [], [], [] ]
+    neighbours = []
     j=0
     for arr in lcs_match:
+        neighbours.append([])
+        temp_time = time.time()
         for i in range(0,5):
             max_neighbour = max(arr, key=itemgetter(0))
             neighbours[j].append(max_neighbour)
             arr.remove(max_neighbour)
 
+        time_elapsed[j] += time.time() - temp_time
+        print('Test Trip ' + str(j+1) + '(--' + str(time_elapsed[j]) + ' seconds)')
+        for i in range(0,5):
+            print('\tNeighbour ' + str(i+1) + ' JP_ID: ' + str(neighbours[j][i][2]) + ' Matching Points: ' + str(neighbours[j][i][0])) 
         j+=1
-
-    #end clock
-    end_time = time.time()
-    print('--- %s seconds elapsed ---' % ( end_time - start_time ) )
 
     #start printing maps
     directory = 'A2_maps'
