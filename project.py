@@ -63,8 +63,6 @@ def lcs(X, Y):
             else:
                 L[i][j] = max(L[i-1][j] , L[i][j-1])
 
-    #L[m][n] contains the length of LCS of X[0..n-1] & Y[0..m-1]
-    #return L[m][n]
     return matching_points
 
 def find_dtw(trainSet, testSet):
@@ -85,10 +83,6 @@ def find_dtw(trainSet, testSet):
             temp.append(arr[1:])
 
         test_data.append(temp)
-
-    #start clock
-    print('--- starting calculation ---')
-    #start_time = time.time()
 
     #compute neighbours
     dtw_dist = []
